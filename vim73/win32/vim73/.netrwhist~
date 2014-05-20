@@ -1,0 +1,6 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhist_cnt =4
+let g:netrw_dirhist_1='D:/live2D/Live2D_sanmple/Live2D_SDK_Flash_0.9.00b20/sample_project/src/jp/live2d'
+let g:netrw_dirhist_2='D:/live2D/Live2D_sanmple/Live2D_SDK_Flash_0.9.00b20/sample_project/src/jp/live2d/sample'
+let g:netrw_dirhist_3='D:/vim/vim73/win32'
+let g:netrw_dirhist_4='D:/live2D/Live2D_sanmple/Live2D_SDK_Flash_0.9.00b20/sample_project/src/jp/live2d/sample'

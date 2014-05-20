@@ -1,0 +1,4 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhist_cnt =2
+let g:netrw_dirhist_1='D:/SQEX/trunk/data_source/client/layout/activity'
+let g:netrw_dirhist_2='D:/vim/vim73/win32'
