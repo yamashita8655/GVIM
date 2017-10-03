@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set nowrap :
 import smtplib
+from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from email.Header import Header
 from email.Utils import formatdate
@@ -15,24 +16,25 @@ class BaseMailer:
         self.login_pass    = login_pass
         self.mail_encoding = mail_encoding
 
-    def __create_message__(self, from_address, to_address, subject, body):
-        message            = MIMEText(body.encode(self.mail_encoding), 'plain', self.mail_encoding)
+    def __create_message__(self, from_address, to_address, cc_address, subject, body):
+        message            = MIMEText(body.encode(self.mail_encoding).replace('\\n\\r', '\r').replace('\\n', '\r'), 'plain', self.mail_encoding)
         message['Subject'] = Header(subject.encode(self.mail_encoding), self.mail_encoding)
         message['From']    = from_address
         message['To']      = to_address
+        message['Cc']      = cc_address
         message['Date']    = formatdate()
         return message
     create_message = __create_message__
 
-    def __send_message__(self, from_address, to_address, message):
+    def __send_message__(self, from_address, to_address, cc_address, message):
         smtp = smtplib.SMTP(self.smtp_host, self.smtp_port)
-        smtp.sendmail(from_address, [to_address], message.as_string())
+        smtp.sendmail(from_address, [to_address], [cc_address], message.as_string())
         smtp.close()
     send_message = __send_message__
 
-    def __sendmail__(self, from_address, to_address, subject, body):
-        message = self.create_message(from_address, to_address, subject, body)
-        self.send_message(from_address, to_address, message)
+    def __sendmail__(self, from_address, to_address, cc_address, subject, body):
+        message = self.create_message(from_address, to_address, cc_address, subject, body)
+        self.send_message(from_address, to_address, cc_address, message)
     sendmail = __sendmail__
 
 
@@ -40,13 +42,17 @@ class TLSMailer(BaseMailer):
     def __init__(self, smtp_host, smtp_port, login_user, login_pass, mail_encoding):
         BaseMailer.__init__(self, smtp_host, smtp_port, login_user, login_pass, mail_encoding)
 
-    def __send_tls_auth_message__(self, from_address, to_address, message):
+    def __send_tls_auth_message__(self, from_address, to_address, cc_address, message):
+        to_address_list = to_address.split(",")
+        cc_address_list = cc_address.split(",")
+        to_address_lists = to_address_list + cc_address_list
         smtp = smtplib.SMTP(self.smtp_host, self.smtp_port)
         smtp.ehlo()
         smtp.starttls()
         smtp.ehlo()
         smtp.login(self.login_user, self.login_pass)
-        smtp.sendmail(from_address, [to_address], message.as_string())
+#        smtp.sendmail(from_address, [to_address], message.as_string())
+        smtp.sendmail(from_address, to_address_lists, message.as_string())
         smtp.close()
     send_message = __send_tls_auth_message__
 
@@ -66,9 +72,9 @@ class POPMailer(BaseMailer):
         popserver.pass_(self.pop_pass)
         popserver.quit()
 
-    def __pop_before_smtp_auth_sendmail__(self, from_address, to_address, subject, body):
+    def __pop_before_smtp_auth_sendmail__(self, from_address, to_address, cc_address, subject, body):
         self.__connect_pop_server__()
-        self.__sendmail__(from_address, to_address, subject, body)
+        self.__sendmail__(from_address, to_address, cc_address, subject, body)
     sendmail = __pop_before_smtp_auth_sendmail__
 
 
@@ -83,14 +89,15 @@ class Mailer(threading.Thread):
         if auth_type == 'POP':
             self.mailer = POPMailer(smtp_host, smtp_port, login_user, login_pass, mail_encoding, pop_host, pop_port, pop_user, pop_pass)
 
-    def sendmail(self, from_address, to_address, subject, body):
+    def sendmail(self, from_address, to_address, cc_address, subject, body):
         self.from_address = from_address
         self.to_address   = to_address
+        self.cc_address   = cc_address
         self.subject      = subject
         self.body         = body
         self.start()
 
     def run(self):
-        self.mailer.sendmail(self.from_address, self.to_address, self.subject, self.body)
+        self.mailer.sendmail(self.from_address, self.to_address, self.cc_address, self.subject, self.body)
 
 

@@ -6,141 +6,19 @@ let s:save_cpo = &cpo
 set cpo&vim
 " }}}
 
+let s:V = vital#of('openbrowser')
+let s:Prelude = s:V.import('Prelude')
+let s:String = s:V.import('Data.String')
+let s:Process = s:V.import('Process')
+let s:URI = s:V.import('Web.URI')
+let s:HTTP = s:V.import('Web.HTTP')
+let s:Buffer = s:V.import('Vim.Buffer')
+let s:Msg = s:V.import('Vim.Message')
+unlet s:V
 
-" Default values of global variables. "{{{
-if g:__openbrowser_platform.cygwin
-    function! s:get_default_open_commands()
-        return ['cygstart']
-    endfunction
-    function! s:get_default_open_rules()
-        return {'cygstart': '{browser} {shellescape(uri)} &'}
-    endfunction
-elseif g:__openbrowser_platform.macunix
-    function! s:get_default_open_commands()
-        return ['open']
-    endfunction
-    function! s:get_default_open_rules()
-        return {'open': '{browser} {shellescape(uri)} &'}
-    endfunction
-elseif g:__openbrowser_platform.mswin
-    function! s:get_default_open_commands()
-        return ['cmd.exe']
-    endfunction
-    function! s:get_default_open_rules()
-        " NOTE: On MS Windows, 'start' command is not executable.
-        " NOTE: If &shellslash == 1,
-        " `shellescape(uri)` uses single quotes not double quote.
-        return {'cmd.exe': 'cmd /c start rundll32 url.dll,FileProtocolHandler ^%OPENBROWSER_URI^%'}
-    endfunction
-elseif g:__openbrowser_platform.unix
-    function! s:get_default_open_commands()
-        return ['xdg-open', 'x-www-browser', 'firefox', 'w3m']
-    endfunction
-    function! s:get_default_open_rules()
-        return {
-        \   'xdg-open':      '{browser} {shellescape(uri)} &',
-        \   'x-www-browser': '{browser} {shellescape(uri)} &',
-        \   'firefox':       '{browser} {shellescape(uri)} &',
-        \   'w3m':           '{browser} {shellescape(uri)} &',
-        \}
-    endfunction
-endif
 
-" Do not remove g:__openbrowser_platform for debug.
-" unlet g:__openbrowser_platform
-
-" }}}
-
-" Global Variables {{{
-if !exists('g:openbrowser_open_commands')
-    let g:openbrowser_open_commands = s:get_default_open_commands()
-endif
-if !exists('g:openbrowser_open_rules')
-    let g:openbrowser_open_rules = s:get_default_open_rules()
-endif
-if !exists('g:openbrowser_fix_schemes')
-    let g:openbrowser_fix_schemes = {
-    \   'ttp': 'http',
-    \   'ttps': 'https',
-    \}
-endif
-if !exists('g:openbrowser_fix_hosts')
-    let g:openbrowser_fix_hosts = {}
-endif
-if !exists('g:openbrowser_fix_paths')
-    let g:openbrowser_fix_paths = {}
-endif
-if exists('g:openbrowser_isfname')
-    " Backward compatibility.
-    let g:openbrowser_iskeyword = g:openbrowser_isfname
-endif
-if !exists('g:openbrowser_iskeyword')
-    " Getting only URI from <cword>.
-    " NOTE: Removed valid URL characters "(", ")".
-    let g:openbrowser_iskeyword = join(
-    \   range(char2nr('A'), char2nr('Z'))
-    \   + range(char2nr('a'), char2nr('z'))
-    \   + range(char2nr('0'), char2nr('9'))
-    \   + [
-    \   '_',
-    \   ':',
-    \   '/',
-    \   '.',
-    \   '-',
-    \   '+',
-    \   '%',
-    \   '#',
-    \   '?',
-    \   '&',
-    \   '=',
-    \   ';',
-    \   '@',
-    \   '$',
-    \   ',',
-    \   '[',
-    \   ']',
-    \   '!',
-    \   "'",
-    \   "*",
-    \   "~",
-    \], ',')
-endif
-if !exists('g:openbrowser_default_search')
-    let g:openbrowser_default_search = 'google'
-endif
-
-let g:openbrowser_search_engines = extend(
-\   get(g:, 'openbrowser_search_engines', {}),
-\   {
-\       'alc': 'http://eow.alc.co.jp/{query}/UTF-8/',
-\       'askubuntu': 'http://askubuntu.com/search?q={query}',
-\       'baidu': 'http://www.baidu.com/s?wd={query}&rsv_bp=0&rsv_spt=3&inputT=2478',
-\       'blekko': 'http://blekko.com/ws/+{query}',
-\       'cpan': 'http://search.cpan.org/search?query={query}',
-\       'duckduckgo': 'http://duckduckgo.com/?q={query}',
-\       'github': 'http://github.com/search?q={query}',
-\       'google': 'http://google.com/search?q={query}',
-\       'google-code': 'http://code.google.com/intl/en/query/#q={query}',
-\       'php': 'http://php.net/{query}',
-\       'python': 'http://docs.python.org/dev/search.html?q={query}&check_keywords=yes&area=default',
-\       'twitter-search': 'http://twitter.com/search/{query}',
-\       'twitter-user': 'http://twitter.com/{query}',
-\       'verycd': 'http://www.verycd.com/search/entries/{query}',
-\       'vim': 'http://www.google.com/cse?cx=partner-pub-3005259998294962%3Abvyni59kjr1&ie=ISO-8859-1&q={query}&sa=Search&siteurl=www.vim.org%2F#gsc.tab=0&gsc.q={query}&gsc.page=1',
-\       'wikipedia': 'http://en.wikipedia.org/wiki/{query}',
-\       'wikipedia-ja': 'http://ja.wikipedia.org/wiki/{query}',
-\       'yahoo': 'http://search.yahoo.com/search?p={query}',
-\   },
-\   'keep'
-\)
-
-if !exists('g:openbrowser_open_filepath_in_vim')
-    let g:openbrowser_open_filepath_in_vim = 1
-endif
-if !exists('g:openbrowser_open_vim_command')
-    let g:openbrowser_open_vim_command = 'vsplit'
-endif
-" }}}
+" Save/Determine global variable values.
+let s:vimproc_is_installed = globpath(&rtp, 'autoload/vimproc.vim') !=# ''
 
 
 " Interfaces {{{
@@ -152,83 +30,108 @@ endfunction "}}}
 
 
 " :OpenBrowser
+" @param uri URI object or String
 function! openbrowser#open(uri) "{{{
-    let uri = a:uri
-    if uri =~# '^\s*$'
-        " Error
+    if type(a:uri) is type({})
+    \   && has_key(a:uri, '__pattern_set')    " URI object
+        " Trust URI object value because
+        " it must be validated by parser.
+        let uriobj = a:uri
+        let uristr = a:uri.to_string()
+    elseif type(a:uri) is type("")
+        let uristr = a:uri
+        if uristr =~# '^\s*$'
+            return
+        endif
+        let uriobj = s:URI.new_from_uri_like_string(a:uri, s:NONE)
+        if uriobj is s:NONE
+            return
+        endif
+    else
         return
     endif
-    let uri = expand(uri)
 
-    let query_type = s:detect_query_type(uri, s:Q_OPEN)
-    if query_type ==# s:QT_FILEPATH    " Existed file path or 'file://'
+    let opened = 0
+    let type = s:detect_query_type(uristr, uriobj)
+    if type.filepath    " Existed file path or 'file://'
         " Convert to full path.
-        if stridx(uri, 'file://') is 0    " file://
-            let fullpath = substitute(uri, '^file://', '', '')
-        elseif uri[0] ==# '/'    " full path
-            let fullpath = uri
+        if stridx(uristr, 'file://') is 0    " file://
+            let fullpath = substitute(uristr, '^file://', '', '')
+        elseif uristr[0] ==# '/'    " full path
+            let fullpath = uristr
         else    " relative path
-            let fullpath = s:convert_to_fullpath(uri)
+            let fullpath = s:convert_to_fullpath(uristr)
         endif
         if s:get_var('openbrowser_open_filepath_in_vim')
-            let command = s:get_var('openbrowser_open_vim_command')
-            execute command fullpath
+            let fullpath = tr(fullpath, '\', '/')
+            try
+                let command = s:get_var('openbrowser_open_vim_command')
+                execute command fullpath
+                let opened = 1
+            catch
+                call s:Msg.error('open-browser failed to open in vim...: '
+                \          . 'v:exception = ' . v:exception
+                \          . ', v:throwpoint = ' . v:throwpoint)
+            endtry
         else
+            let fullpath = tr(fullpath, '\', '/')
             " Convert to file:// string.
             " NOTE: cygwin cannot treat file:// URI,
             " pass a string as fullpath.
             if !g:__openbrowser_platform.cygwin
                 let fullpath = 'file://' . fullpath
             endif
-            call s:open_browser(fullpath)
+            let opened = s:open_browser(fullpath)
         endif
-    elseif query_type ==# s:QT_URI    " other URI
-        let obj = urilib#new_from_uri_like_string(uri, s:NONE)
-        if obj is s:NONE
-            " Error
-            return
-        endif
+    elseif type.uri    " other URI
         " Fix scheme, host, path.
         " e.g.: "ttp" => "http"
         for where in ['scheme', 'host', 'path']
             let fix = s:get_var('openbrowser_fix_'.where.'s')
-            let value = obj[where]()
+            let value = uriobj[where]()
             if has_key(fix, value)
-                call call(obj[where], [fix[value]], obj)
+                call call(uriobj[where], [fix[value]], uriobj)
             endif
         endfor
-        let uri = obj.to_string()
-        call s:open_browser(uri)
-    else
-        " Error
-        return
+        let uristr = uriobj.to_string()
+        let opened = s:open_browser(uristr)
+    endif
+    if !opened
+        call s:Msg.warn("open-browser doesn't know how to open '" . uristr . "'.")
+    elseif g:openbrowser_force_foreground_after_open && s:Prelude.is_windows()
+        " XXX: Vim looses a focus after opening URI...
+        " Is this same as non-Windows platform?
+        augroup openbrowser
+            autocmd!
+            autocmd FocusLost * call foreground() | autocmd! openbrowser FocusLost
+        augroup END
     endif
 endfunction "}}}
 
 " :OpenBrowserSearch
 function! openbrowser#search(query, ...) "{{{
+    if a:query =~# '^\s*$'
+        return
+    endif
+
     let engine = a:0 ? a:1 :
     \   s:get_var('openbrowser_default_search')
     let search_engines =
     \   s:get_var('openbrowser_search_engines')
     if !has_key(search_engines, engine)
-        echohl WarningMsg
-        echomsg "Unknown search engine '" . engine . "'."
-        echohl None
+        call s:Msg.warn("Unknown search engine '" . engine . "'.")
         return
     endif
 
-    call openbrowser#open(
-    \   s:expand_keywords(search_engines[engine], {'query': a:query})
-    \)
+    let query = s:HTTP.encodeURIComponent(a:query)
+    let uri = s:expand_keywords(search_engines[engine], {'query': query})
+    call openbrowser#open(uri)
 endfunction "}}}
 
 " :OpenBrowserSmartSearch
 function! openbrowser#smart_search(query, ...) "{{{
-    let query_type = s:detect_query_type(a:query, s:Q_SMART_SEARCH)
-    if query_type ==# s:QT_URI ||
-    \  s:get_var('openbrowser_open_filepath_in_vim') &&
-    \  query_type ==# s:QT_FILEPATH
+    let type = s:detect_query_type(a:query)
+    if type.uri || type.filepath
         return openbrowser#open(a:query)
     else
         return openbrowser#search(
@@ -238,23 +141,27 @@ function! openbrowser#smart_search(query, ...) "{{{
     endif
 endfunction "}}}
 
+" Escape one argument.
+function! openbrowser#shellescape(...) "{{{
+    return call(s:Process.shellescape, a:000, s:Process)
+endfunction "}}}
+
+" }}}
+
+" Test {{{
+
+function! openbrowser#__inject__(name, obj) abort
+    if a:name ==# 'Process'
+        let s:[a:name] = a:obj
+    endif
+endfunction
+
 " }}}
 
 " Implementations {{{
 
 let s:NONE = []
 lockvar s:NONE
-
-" See s:detect_query_type()
-let [
-\   s:QT_URI,
-\   s:QT_FILEPATH,
-\   s:QT_UNKNOWN
-\] = range(3)
-let [
-\   s:Q_OPEN,
-\   s:Q_SMART_SEARCH
-\] = range(2)
 
 
 
@@ -264,12 +171,11 @@ function! s:parse_and_delegate(excmd, parse, delegate, cmdline) "{{{
     try
         let [engine, cmdline] = {a:parse}(cmdline)
     catch /^parse error/
-        echohl WarningMsg
-        echomsg 'usage:'
-        \       a:excmd
-        \       '[-{search-engine}]'
-        \       '{query}'
-        echohl None
+        call s:Msg.warn(
+        \   a:excmd
+        \   . ' [-{search-engine}]'
+        \   . ' {query}'
+        \)
         return
     endtry
 
@@ -290,7 +196,9 @@ function! openbrowser#_cmd_open_browser_search(cmdline) "{{{
     \   a:cmdline
     \)
 endfunction "}}}
-function! openbrowser#_cmd_complete(unused1, cmdline, unused2) "{{{
+" @vimlint(EVL103, 1, a:arglead)
+" @vimlint(EVL103, 1, a:cursorpos)
+function! openbrowser#_cmd_complete(arglead, cmdline, cursorpos) "{{{
     let excmd = '^\s*OpenBrowser\w\+\s\+'
     if a:cmdline !~# excmd
         return
@@ -310,6 +218,8 @@ function! openbrowser#_cmd_complete(unused1, cmdline, unused2) "{{{
     " Find out which engine.
     return filter(engine_options, 'stridx(v:val, cmdline) is 0')
 endfunction "}}}
+" @vimlint(EVL103, 0, a:arglead)
+" @vimlint(EVL103, 0, a:cursorpos)
 
 " :OpenBrowserSmartSearch
 function! openbrowser#_cmd_open_browser_smart_search(cmdline) "{{{
@@ -322,11 +232,34 @@ function! openbrowser#_cmd_open_browser_smart_search(cmdline) "{{{
 endfunction "}}}
 
 " <Plug>(openbrowser-open)
-function! openbrowser#_keymapping_open(mode) "{{{
+function! openbrowser#_keymapping_open(mode, ...) "{{{
+    let silent = get(a:000, 0, 0)
     if a:mode ==# 'n'
-        return openbrowser#open(s:get_url_on_cursor())
+        " URL
+        let url = s:get_url_on_cursor()
+        if !empty(url)
+            call openbrowser#open(url)
+            return 1
+        endif
+        " FilePath
+        let filepath = s:get_filepath_on_cursor()
+        if !empty(filepath)
+            call openbrowser#open(filepath)
+            return 1
+        endif
+        " Fail!
+        if !silent
+            call s:Msg.error(
+            \   "URL or file path is not found under cursor!")
+        endif
+        return 0
     else
-        return openbrowser#open(s:get_selected_text())
+        let text = s:get_selected_text()
+        let urls = s:extract_urls(text)
+        for url in urls
+            call openbrowser#open(url.obj)
+        endfor
+        return !empty(urls)
     endif
 endfunction "}}}
 
@@ -341,13 +274,110 @@ endfunction "}}}
 
 " <Plug>(openbrowser-smart-search)
 function! openbrowser#_keymapping_smart_search(mode) "{{{
+    if openbrowser#_keymapping_open(a:mode, 1)
+        " Suceeded to open!
+        return
+    endif
+    " If neither URL nor FilePath is found...
     if a:mode ==# 'n'
-        return openbrowser#smart_search(s:get_url_on_cursor())
+        " Search <cword>.
+        call openbrowser#search(
+        \   expand('<cword>'),
+        \   s:get_var('openbrowser_default_search'))
     else
-        return openbrowser#smart_search(s:get_selected_text())
+        " Search selected text.
+        call openbrowser#search(
+        \   s:get_selected_text(),
+        \   s:get_var('openbrowser_default_search'))
     endif
 endfunction "}}}
 
+function! s:get_selected_text() "{{{
+    let selected_text = s:Buffer.get_last_selected()
+    let text = substitute(selected_text, '[\n\r]\+', ' ', 'g')
+    return substitute(text, '^\s*\|\s*$', '', 'g')
+endfunction "}}}
+
+function! s:by_length(s1, s2) abort
+    let [l1, l2] = [strlen(a:s1), strlen(a:s2)]
+    return l1 ># l2 ? -1 : l1 <# l2 ? 1 : 0
+endfunction
+
+
+" Define more tolerant URI parsing. {{{
+" TODO: Make this configurable.
+
+let s:LoosePatternSet = {}
+
+function! s:get_loose_pattern_set() abort
+    if !empty(s:LoosePatternSet)
+        return s:LoosePatternSet
+    endif
+    let s:LoosePatternSet = s:URI.new_default_pattern_set()
+
+    " Remove "'", "(", ")" from default sub_delims().
+    function! s:LoosePatternSet.sub_delims() abort
+        return '[!$&*+,;=]'
+    endfunction
+
+    return s:LoosePatternSet
+endfunction
+
+" }}}
+
+
+" @return List of Dictionary.
+"   Empty List means no URLs are found in a:text .
+"   Here are the keys of Dictionary.
+"     'obj' url
+"     'startidx' start index
+"     'endidx' end index ([startidex, endidx), half-open interval)
+function! s:extract_urls(text) abort "{{{
+    " NOTE: 'scheme_pattern' only allows "https", "http", "file"
+    " and the keys of 'openbrowser_fix_schemes'.
+    " However `pattern_set.get('scheme')` would be too tolerant
+    " and useless (what can web browser do for git protocol? :( ).
+    let scheme_map = s:get_var('openbrowser_fix_schemes')
+    let scheme_list = ['https\?', 'file'] + keys(scheme_map)
+    let scheme_pattern = join(sort(scheme_list, 's:by_length'), '\|')
+    let pattern_set = s:get_loose_pattern_set()
+    let head_pattern = scheme_pattern . '\|' . pattern_set.host()
+    let urls = []
+    let start = 0
+    let end = 0
+    let len = strlen(a:text)
+    while start <# len
+        " Search scheme.
+        let start = match(a:text, head_pattern, start)
+        if start ==# -1
+            break
+        endif
+        let end = matchend(a:text, head_pattern, start)
+        " Try to parse string as URI.
+        let substr = a:text[start :]
+        let results = s:URI.new_from_seq_string(substr, s:NONE, pattern_set)
+        if results is s:NONE || !s:seems_uri(results[0])
+            " If failed to parse, try it as a URL without scheme again.
+            let results = s:URI.new_from_seq_string(
+            \               'http://' . substr, s:NONE, pattern_set)
+            if results is s:NONE || !s:seems_uri(results[0])
+                " start ==# end: matching string can be empty string.
+                " e.g.: echo [match('abc', 'd*'), matchend('abc', 'd*')]
+                let start = (start ==# end ? end+1 : end)
+                continue
+            endif
+        endif
+        let [url, original_url] = results[0:1]
+        let skip_num = len(original_url)
+        let urls += [{
+        \   'obj': url,
+        \   'startidx': start,
+        \   'endidx': start + skip_num,
+        \}]
+        let start += skip_num
+    endwhile
+    return urls
+endfunction "}}}
 
 function! s:seems_path(uri) "{{{
     " - Has no invalid filename character (seeing &isfname)
@@ -362,125 +392,205 @@ function! s:seems_path(uri) "{{{
     return getftype(path) !=# ''
 endfunction "}}}
 
-function! s:seems_uri(uri) "{{{
-    let uri = urilib#new_from_uri_like_string(a:uri, s:NONE)
-    return uri isnot s:NONE
-    \   && uri.scheme() !=# ''
-    \   && uri.host() =~# '\.'
+function! s:seems_uri(uriobj) "{{{
+    return !empty(a:uriobj)
+    \   && a:uriobj.scheme() !=# ''
 endfunction "}}}
 
-function! s:detect_query_type(query, callee) "{{{
-    let seems = {
-    \   'uri': s:seems_uri(a:query),
+function! s:detect_query_type(query, ...) "{{{
+    let uriobj = a:0 ? a:1 : {}
+    if empty(uriobj)
+        let uriobj = s:URI.new_from_uri_like_string(a:query, {})
+    endif
+    return {
+    \   'uri': s:seems_uri(uriobj),
     \   'filepath': s:seems_path(a:query),
     \}
-
-    if a:callee ==# s:Q_OPEN
-        " filepath -> uri -> unknown
-        return seems.filepath ? s:QT_FILEPATH :
-        \      seems.uri      ? s:QT_URI :
-        \      s:QT_UNKNOWN
-    elseif a:callee ==# s:Q_SMART_SEARCH
-        " uri -> filepath -> unknown
-        return seems.uri      ? s:QT_URI :
-        \      seems.filepath ? s:QT_FILEPATH :
-        \      s:QT_UNKNOWN
-    else
-        " uri -> filepath -> unknown
-        return seems.filepath ? s:QT_FILEPATH :
-        \      seems.uri      ? s:QT_URI :
-        \      s:QT_UNKNOWN
-    endif
 endfunction "}}}
 
+" @vimlint(EVL104, 1, l:save_shellslash)
 function! s:convert_to_fullpath(path) "{{{
-    let save_shellslash = &shellslash
-    let &l:shellslash = 1
+    if exists('+shellslash')
+        let save_shellslash = &l:shellslash
+        let &l:shellslash = 1
+    endif
     try
         return fnamemodify(a:path, ':p')
     finally
-        let &l:shellslash = save_shellslash
+        if exists('+shellslash')
+            let &l:shellslash = save_shellslash
+        endif
     endtry
+endfunction "}}}
+" @vimlint(EVL104, 0, l:save_shellslash)
+
+function! s:expand_format_message(format_message, keywords) "{{{
+    let maxlen = s:Msg.get_hit_enter_max_length()
+    let expanded_msg = s:expand_keywords(a:format_message.msg, a:keywords)
+    if a:format_message.truncate && strlen(expanded_msg) > maxlen
+        " Avoid |hit-enter-prompt|.
+        let non_uri_len = strlen(expanded_msg) - strlen(a:keywords.uri)
+        " First Try: Remove "https" or "http" scheme in URI.
+        let scheme = '\C^https\?://'
+        let matched_len = strlen(matchstr(a:keywords.uri, scheme))
+        if matched_len > 0
+            let a:keywords.uri = a:keywords.uri[matched_len :]
+        endif
+        if non_uri_len + strlen(a:keywords.uri) <= maxlen
+            let expanded_msg = s:expand_keywords(a:format_message.msg, a:keywords)
+        else
+            " Second Try: Even if expanded_msg is longer than command-line
+            " after "First Try", truncate URI as possible.
+            let min_uri_len = a:format_message.min_uri_len
+            if non_uri_len + min_uri_len <= maxlen
+                " Truncate only URI.
+                let a:keywords.uri = s:String.truncate_skipping(
+                \           a:keywords.uri, maxlen - 4 - non_uri_len, 0, '...')
+                let expanded_msg = s:expand_keywords(a:format_message.msg, a:keywords)
+            else
+                " Third, Fallback: Even if expanded_msg is longer than command-line
+                " after "Second Try", truncate whole string.
+                let a:keywords.uri = s:String.truncate_skipping(
+                \                   a:keywords.uri, min_uri_len, 0, '...')
+                let expanded_msg = s:expand_keywords(a:format_message.msg, a:keywords)
+                let expanded_msg = s:String.truncate_skipping(
+                \                   expanded_msg, maxlen - 4, 0, '...')
+            endif
+        endif
+    endif
+    return expanded_msg
 endfunction "}}}
 
 function! s:open_browser(uri) "{{{
     let uri = a:uri
 
-    redraw
-    echo "opening '" . uri . "' ..."
+    let format_message = s:get_var('openbrowser_format_message')
+    if format_message.msg !=# ''
+        redraw
+        let msg = s:expand_format_message(format_message,
+        \   {
+        \      'uri' : uri,
+        \      'done' : 0,
+        \      'command' : '',
+        \   })
+        echo msg
+    endif
 
-    for browser in s:get_var('openbrowser_open_commands')
-        if !executable(browser)
+    for cmd in s:get_var('openbrowser_browser_commands')
+        if !executable(cmd.name)
             continue
         endif
-        let open_rules = s:get_var('openbrowser_open_rules')
-        if !has_key(open_rules, browser)
-            continue
-        endif
 
-        " On Windows, URL encode may result in
-        " unexpected expansion by environment variable.
-        " https://www.google.co.jp/search?q=%89%cd%90%ec&ie=sjis
-        " -> https://www.google.co.jp/search?q=%89C:\Vim90%ec&ie=sjis
-        " cf. https://github.com/tyru/open-browser.vim/issues/14
-        if g:__openbrowser_platform.mswin
-            " Avoid crappy escaping hell.
-            let $OPENBROWSER_URI = uri
-        endif
-        let cmdline = s:expand_keywords(
-        \   open_rules[browser],
-        \   {'browser': browser, 'uri': uri}
+        " If args is not List, need to escape by open-browser,
+        " not s:Process.system().
+        let args = deepcopy(cmd.args)
+        let need_escape = type(args) isnot type([])
+        let quote = need_escape ? "'" : ''
+        let use_vimproc = (g:openbrowser_use_vimproc && s:vimproc_is_installed)
+        let system_args = map(
+        \   (type(args) is type([]) ? copy(args) : [args]),
+        \   's:expand_keywords(
+        \      v:val,
+        \      {
+        \           "browser"      : quote . cmd.name . quote,
+        \           "browser_noesc": cmd.name,
+        \           "uri"          : quote . uri . quote,
+        \           "uri_noesc"    : uri,
+        \           "use_vimproc"  : use_vimproc,
+        \       }
+        \   )'
         \)
-        call system(cmdline)
+        try
+            call s:Process.system(
+            \   (type(args) is type([]) ? system_args : system_args[0]),
+            \   {'use_vimproc': use_vimproc,
+            \    'background': get(cmd, 'background')}
+            \)
+        catch
+            call s:Msg.error('open-browser failed to open URI...')
+            call s:Msg.error('v:exception = ' . v:exception)
+            call s:Msg.error('v:throwpoint = ' . v:throwpoint)
+            return 0
+        endtry
 
-        " No need to check v:shell_error
+        " No need to check v:shell_error here
         " because browser is spawned in background process
         " so can't check its return value.
 
-        if g:__openbrowser_platform.mswin
-            let $OPENBROWSER_URI = ''
+        if format_message.msg !=# ''
+            redraw
+            let msg = s:expand_format_message(format_message,
+            \   {
+            \      'uri' : uri,
+            \      'done' : 1,
+            \      'command' : cmd.name,
+            \   })
+            echo msg
         endif
-
-        redraw
-        echo "opening '" . uri . "' ... done! (" . browser . ")"
-        return
+        " succeeded to open
+        return 1
     endfor
-
-    echohl WarningMsg
-    redraw
-    echomsg "open-browser doesn't know how to open '" . uri . "'."
-    echohl None
+    " failed to open
+    return 0
 endfunction "}}}
 
-" Get selected text in visual mode.
-function! s:get_selected_text() "{{{
-    let save_z = getreg('z', 1)
-    let save_z_type = getregtype('z')
-
-    try
-        normal! gv"zy
-        return @z
-    finally
-        call setreg('z', save_z, save_z_type)
-    endtry
-endfunction "}}}
-
+" @return Dictionary: the URL on cursor, or the first URL after cursor
+"   Empty Dictionary means no URLs found.
+" :help openbrowser-url-detection
 function! s:get_url_on_cursor() "{{{
-    let save_iskeyword = &iskeyword
-    " Avoid rebuilding of `chartab`.
-    " (declared in globals.h, rebuilt by did_set_string_option() in option.c)
-    if &iskeyword !=# g:openbrowser_iskeyword
-        let &iskeyword = g:openbrowser_iskeyword
-    endif
-    try
-        return expand('<cword>')
-    finally
-        " Avoid rebuilding of `chartab`.
-        if &iskeyword !=# save_iskeyword
-            let &iskeyword = save_iskeyword
-        endif
-    endtry
+    let url = s:get_thing_on_cursor('s:detect_url_cb')
+    return url isnot s:NONE ? url : ''
 endfunction "}}}
+
+" @return the filepath on cursor, or the first filepath after cursor
+" :help openbrowser-filepath-detection
+function! s:get_filepath_on_cursor() "{{{
+    let filepath = s:get_thing_on_cursor('s:detect_filepath_cb')
+    return filepath isnot s:NONE ? filepath : ''
+endfunction "}}}
+
+function! s:get_thing_on_cursor(func) abort
+    let line = s:getconcealedline('.')
+    let col = s:getconcealedcol('.')
+    if line[col-1] =~# '\s'
+        let pos = getpos('.')
+        try
+            " Search left WORD.
+            if search('\S', 'bnW')[0] ># 0
+                keepjumps normal! B
+                let [found, retval] = call(a:func, [])
+                if found | return retval | endif
+            endif
+            " Search right WORD.
+            if search('\S', 'nW')[0] ># 0
+                keepjumps normal! W
+                let [found, retval] = call(a:func, [])
+                if found | return retval | endif
+            endif
+            " Not found.
+            return s:NONE
+        finally
+            call setpos('.', pos)
+        endtry
+    endif
+    let [found, retval] = call(a:func, [])
+    if found | return retval | endif
+    return s:NONE
+endfunction
+
+function! s:detect_url_cb() abort
+    let urls = s:extract_urls(expand('<cWORD>'))
+    if !empty(urls)
+        return [1, urls[0].obj]
+    endif
+    return [0, {}]
+endfunction
+
+function! s:detect_filepath_cb() abort
+    let retval = expand('<cWORD>')
+    let found = s:seems_path(retval)
+    return [found, retval]
+endfunction
 
 " This function is from quickrun.vim (http://github.com/thinca/vim-quickrun)
 " Original function is `s:Runner.expand()`.
@@ -532,14 +642,34 @@ function! s:expand_keywords(str, options)  " {{{
             let result .= rest[1]
             let rest = rest[2 :]
         elseif rest[0] == '{'
-            let e = matchend(rest, '\\\@<!}')
-            let expr = substitute(rest[1 : e - 2], '\\}', '}', 'g')
-            let result .= eval(expr)
-            let rest = rest[e :]
+            " NOTE: braindex + 1 == 1, it skips first bracket (rest[0])
+            let braindex = 0
+            let braindex_stack = [braindex]
+            while !empty(braindex_stack)
+                let braindex = match(rest, '\\\@<![{}]', braindex + 1)
+                if braindex ==# -1
+                    echoerr 'expression is invalid: curly bracket is not closed.'
+                    return ''
+                elseif rest[braindex] ==# '{'
+                    call add(braindex_stack, braindex)
+                else    " '}'
+                    let brastart = remove(braindex_stack, -1)
+                    " expr does not contain brackets.
+                    " Assert: rest[brastart ==# '{' && rest[braindex] ==# '}'
+                    let left = brastart ==# 0 ? '' : rest[: brastart-1]
+                    let expr = rest[brastart+1 : braindex-1]
+                    let right = rest[braindex+1 :]
+                    " Remove(unescape) backslashes.
+                    let expr = substitute(expr, '\\\([{}]\)', '\1', 'g')
+                    let value = eval(expr) . ""
+                    let rest = left . value . right
+                    let braindex -= len(expr) - len(value)
+                endif
+            endwhile
+            let result .= rest[: braindex]
+            let rest = rest[braindex+1 :]
         else
-            echohl WarningMsg
-            echomsg 'parse error: rest = '.rest.', result = '.result
-            echohl None
+            call s:Msg.warn('parse error: rest = '.rest.', result = '.result)
         endif
     endwhile
     return result
@@ -553,6 +683,73 @@ function! s:get_var(varname) "{{{
     endfor
     throw 'openbrowser: internal error: '
     \   . "s:get_var() couldn't find variable '".a:varname."'."
+endfunction "}}}
+
+" From https://github.com/chikatoike/concealedyank.vim
+function! s:getconcealedline(lnum, ...) "{{{
+    if !has('conceal')
+        return getline(a:lnum)
+    endif
+
+    let line = getline(a:lnum)
+    let index = get(a:000, 0, 0)
+    let endidx = get(a:000, 1, -1)
+    let endidx = endidx >= 0 ? min([endidx, strlen(line)]) : strlen(line)
+
+    let region = -1
+    let ret = ''
+
+    while index <= endidx
+        let concealed = synconcealed(a:lnum, index + 1)
+        if concealed[0] != 0
+            if region != concealed[2]
+                let region = concealed[2]
+                let ret .= concealed[1]
+            endif
+        else
+            let ret .= line[index]
+        endif
+
+        " get next char index.
+        let index += 1
+    endwhile
+
+    return ret
+endfunction "}}}
+
+function! s:getconcealedcol(expr) "{{{
+    if !has('conceal')
+        return col(a:expr)
+    endif
+
+    let index = 0
+    let endidx = col(a:expr)
+
+    let ret = 0
+    let isconceal = 0
+
+    while index < endidx
+        let concealed = synconcealed('.', index + 1)
+        if concealed[0] == 0
+            let ret += 1
+        endif
+        let isconceal = concealed[0]
+
+        " get next char index.
+        let index += 1
+    endwhile
+
+    if ret == 0
+      let ret = 1
+    elseif isconceal
+      let ret += 1
+    endif
+
+    return ret
+endfunction "}}}
+
+function! s:shellslash()
+    return exists('+shellslash') && &l:shellslash
 endfunction "}}}
 
 " }}}
