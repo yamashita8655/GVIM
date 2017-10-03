@@ -3,7 +3,7 @@
 " An example for a Japanese version gvimrc file.
 " 日本語版のデフォルトGUI設定ファイル(gvimrc) - Vim7用試作
 "
-" Last Change: 12-Feb-2014.
+" Last Change: 31-Oct-2016.
 " Maintainer:  MURAOKA Taro <koron.kaoriya@gmail.com>
 "
 " 解説:
@@ -195,7 +195,7 @@ imap <C-j> <DOWN>
 imap <C-k> <UP>
 
 "ここは、環境によって設定し直す事
-:set backupdir=C:\takuya\vim\backup
+:set backupdir=C:\yamashita\github\GVIM\backup
 :set tw=0
 
 :colorscheme koehler
@@ -281,3 +281,22 @@ set diffopt-=filler
 "autocmd WinEnter,BufRead * set cursorcolumn
 "augroup END
 
+" メモディレクトリを一発で開くコマンドテスト
+:command! Memo :tabe | :cd C:\yamashita\github\GVIM\vim73\win32\memo | :UniteWithBufferDir -buffer-name=files file
+
+" ブラウザ開く
+let g:netrw_nogx = 1 " disable netrw's gx mapping.
+nmap gx <Plug>(openbrowser-smart-search)
+vmap gx <Plug>(openbrowser-smart-search)
+
+" grep使いやすくする設定
+autocmd QuickFixCmdPost *grep* cwindow
+
+" web開くの使いやすくする設定
+nmap :google :OpenBrowserSearch
+
+nmap :memo :w C:\yamashita\memo\
+nmap :fop :silent !Explorer .
+
+" URLをメモしてあるテキストを開くキーマップ
+nmap <Space>url :open C:/yamashita/github/GVIM/vim73/win32/url <enter>
