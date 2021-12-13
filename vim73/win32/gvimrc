@@ -3,7 +3,7 @@
 " An example for a Japanese version gvimrc file.
 " 日本語版のデフォルトGUI設定ファイル(gvimrc) - Vim7用試作
 "
-" Last Change: 31-Oct-2016.
+" Last Change: 20-Dec-2020.
 " Maintainer:  MURAOKA Taro <koron.kaoriya@gmail.com>
 "
 " 解説:
@@ -185,7 +185,7 @@ au GUIEnter * simalt ~x
 
 imap <C-j> <C-[>
 imap <C-k> <C-m>
-imap { {<CR>}<UP><CR><TAB>
+imap { {}<LEFT><RETURN><RETURN><UP><TAB>
 imap [ []<LEFT>
 imap ( ()
 
@@ -195,7 +195,7 @@ imap <C-j> <DOWN>
 imap <C-k> <UP>
 
 "ここは、環境によって設定し直す事
-:set backupdir=C:\yamashita\github\GVIM\backup
+:set backupdir=D:\MyVim\backup
 :set tw=0
 
 :colorscheme koehler
@@ -300,3 +300,15 @@ nmap :fop :silent !Explorer .
 
 " URLをメモしてあるテキストを開くキーマップ
 nmap <Space>url :open C:/yamashita/github/GVIM/vim73/win32/url <enter>
+
+" for文挿入
+nmap fff <insert><TAB>for ( {<UP><RIGHT>int i = 0; i < empty; i++<DOWN>
+imap fff for ( {<UP><RIGHT>int i = 0; i < empty; i++<DOWN>
+
+nmap ff<S-u> bv<S-u>
+nmap ffu bvu
+
+
+" if文挿入
+nmap ffi <insert><TAB>if ( {<UP>
+imap ffi if ( {<UP
